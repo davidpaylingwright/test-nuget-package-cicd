@@ -1,0 +1,99 @@
+name: 'CI'
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+", "v[0-9]+.[0-9]+.[0-9]+-*"]
+
+permissions:
+  contents: write
+  actions: read
+  checks: write
+
+env:
+  Configuration: Release
+  DotnetVersion: 8.0.x
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version
+        id: get_version
+        uses: davidpaylingwright/action-dev-version@main
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DotnetVersion }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        env:
+          CONFIGURATION: ${{ env.Configuration }}
+          VERSION: ${{ steps.get_version.outputs.version }}
+        run: >
+          dotnet build --no-restore
+          -c $CONFIGURATION
+          -p:Version=$VERSION
+
+      - name: Test
+        env:
+          CONFIGURATION: ${{ env.Configuration }}
+        run: >
+          dotnet test --no-restore --no-build
+          -c $CONFIGURATION
+          -l "trx;logfilename=test-results.trx" || true
+
+      - name: Report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: tests
+          path: "**/test-results.trx"
+          reporter: dotnet-trx
+          fail-on-error: true
+
+      - name: Zip binaries
+        id: zip
+        uses: davidpaylingwright/action-dev-zip-binaries@main
+        with:
+          configuration: ${{ env.Configuration }}
+
+      - name: Pack
+        env:
+          CONFIGURATION: ${{ env.Configuration }}
+          PACKAGE_ARTIFACT_FOLDER: ${{ secrets.PACKAGE_ARTIFACT_FOLDER }}
+          PACKAGE_VERSION: ${{ steps.get_version.outputs.package_version }}
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: >
+          dotnet pack --no-restore --no-build
+          -c $CONFIGURATION
+          -o $PACKAGE_ARTIFACT_FOLDER
+          -p:PackageVersion=$PACKAGE_VERSION
+          -p:RepositoryType=git
+          -p:RepositoryUrl=$REPOSITORY_URL
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.get_version.outputs.tag }}
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+          files: ${{ steps.zip.outputs.files }}
+          fail_on_unmatched_files: true
+
+      - name: Push to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_SOURCE: ${{ secrets.NUGET_SOURCE }}
+          PACKAGE_ARTIFACT_FOLDER: ${{ secrets.PACKAGE_ARTIFACT_FOLDER }}
+        run: >
+          dotnet nuget push $PACKAGE_ARTIFACT_FOLDER/*.nupkg
+          --api-key $NUGET_API_KEY
+          --source $NUGET_SOURCE
+

@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <Product>TestNugetPackageCICD</Product>
+    <Version>0.0.0</Version>
+    <Company>LiveDpwZone</Company>
+    <Authors>LiveDpwZone</Authors>
+    <Description>Project to test Nuget Package CICD</Description>
+    <Copyright>Copyright © 2025  LiveDpwZone</Copyright>
+    <PackageId>TestNugetPackageCICD</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>test nuget package cicd</PackageTags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon.png" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <Target Name="PackLicense" BeforeTargets="GenerateNuspec">
+    <ItemGroup>
+      <LicenseFile Include="..\..\LICENSE" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LicenseFile)" DestinationFiles="@(LicenseFile->Replace('LICENSE', 'LICENSE.txt'))" />
+    <Move SourceFiles="$(ProjectDir)..\..\LICENSE.txt" DestinationFolder="$(OutDir)" OverwriteReadOnlyFiles="true"/>
+    <ItemGroup>
+      <_PackageFiles Include="$(OutDir)LICENSE.txt">
+        <PackagePath>\</PackagePath>
+        <BuildAction>Content</BuildAction>
+      </_PackageFiles>
+    </ItemGroup>
+  </Target>
+
+</Project>

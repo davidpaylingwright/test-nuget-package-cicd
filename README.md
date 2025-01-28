@@ -1,0 +1,1 @@
+# test-nuget-package-cicd&nbsp;[![CI](https://github.com/davidpaylingwright/test-nuget-package-cicd/actions/workflows/ci/badge.svg)](https://github.com/davidpaylingwright/test-nuget-package-cicd/actions/workflows/ci.yml)&nbsp;[![Nuget](https://img.shields.io/nuget/v/TestNugetPackageCICD.svg)](https://nuget.org/packages/TestNugetPackageCICD)
